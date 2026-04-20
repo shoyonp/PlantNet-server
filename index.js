@@ -50,9 +50,9 @@ async function run() {
   try {
     const db = client.db("plantNet");
     const userCollection = db.collection("users");
+    const plantsCollection = db.collection("plants");
 
     // save or update a user in db
-
     app.post("/users/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
@@ -65,7 +65,7 @@ async function run() {
 
       const result = await userCollection.insertOne({
         ...user,
-        role:'customer',
+        role: "customer",
         timestamp: Date.now(),
       });
       res.send(result);
@@ -99,6 +99,13 @@ async function run() {
       } catch (err) {
         res.status(500).send(err);
       }
+    });
+
+    // save a plant data in db
+    app.post("/plants", verifyToken, async (req, res) => {
+      const plant = req.body;
+      const result = await plantsCollection.insertOne(plant);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
