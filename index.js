@@ -126,13 +126,67 @@ async function run() {
     // save order data in db
     app.post("/order", verifyToken, async (req, res) => {
       const orderInfo = req.body;
-      console.log(orderInfo);
       const result = await ordersCollection.insertOne(orderInfo);
       res.send(result);
     });
 
     // Manage plant quantity
+    app.patch("/plants/quantity/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const { quantityToUpdate } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      let updateDoc = {
+        $inc: { quantity: -quantityToUpdate },
+      };
+      const result = await plantsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
+    //get all orders for a specific customer
+    app.get("/customer-orders/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { "customer.email": email };
+      const result = await ordersCollection
+        .aggregate([
+          {
+            $match: query, // match specific customers data only by email
+          },
+          {
+            $addFields: {
+              plantId: { $toObjectId: "$plantId" }, //convert plantId string field to objectId field
+            },
+          },
+          {
+            $lookup: {
+              //go to a diffrent collection and look for data
+              from: "plants", // collection name
+              localField: "plantId", // local data that you want to match
+              foreignField: "_id", // foreign field of that same data
+              as: "plants", // return the data as plants array(array naming)
+            },
+          },
+          {
+            $unwind: "$plants", // unwind lookup result, return without array
+          },
+          {
+            // add these fields in order object
+            $addFields: {
+              name: "$plants.name",
+              image: "$plants.image",
+              category: "$plants.category",
+            },
+          },
+          {
+            // remove plant obejct property from order object
+            $project: {
+              plants: 0,
+            },
+          },
+        ])
+        .toArray();
+
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
