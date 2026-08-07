@@ -98,6 +98,14 @@ async function run() {
       res.send({ role: result?.role });
     });
 
+    // get all user data
+    app.get("/all-users/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: { $ne: email } };
+      const result = await userCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Generate jwt token
     app.post("/jwt", async (req, res) => {
       const email = req.body;
