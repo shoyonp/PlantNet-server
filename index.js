@@ -288,46 +288,63 @@ async function run() {
     });
 
     //get all orders for a specific seller
-    app.get("/seller-orders/:email", verifyToken,verifySeller, async (req, res) => {
-      const email = req.params.email;
-      const query = { "seller": email };
-      const result = await ordersCollection
-        .aggregate([
-          {
-            $match: query, // match specific customers data only by email
-          },
-          {
-            $addFields: {
-              plantId: { $toObjectId: "$plantId" }, //convert plantId string field to objectId field
+    app.get(
+      "/seller-orders/:email",
+      verifyToken,
+      verifySeller,
+      async (req, res) => {
+        const email = req.params.email;
+        const query = { seller: email };
+        const result = await ordersCollection
+          .aggregate([
+            {
+              $match: query, // match specific customers data only by email
             },
-          },
-          {
-            $lookup: {
-              //go to a diffrent collection and look for data
-              from: "plants", // collection name
-              localField: "plantId", // local data that you want to match
-              foreignField: "_id", // foreign field of that same data
-              as: "plants", // return the data as plants array(array naming)
+            {
+              $addFields: {
+                plantId: { $toObjectId: "$plantId" }, //convert plantId string field to objectId field
+              },
             },
-          },
-          {
-            $unwind: "$plants", // unwind lookup result, return without array
-          },
-          {
-            // add these fields in order object
-            $addFields: {
-              name: "$plants.name",
+            {
+              $lookup: {
+                //go to a diffrent collection and look for data
+                from: "plants", // collection name
+                localField: "plantId", // local data that you want to match
+                foreignField: "_id", // foreign field of that same data
+                as: "plants", // return the data as plants array(array naming)
+              },
             },
-          },
-          {
-            // remove plant obejct property from order object
-            $project: {
-              plants: 0,
+            {
+              $unwind: "$plants", // unwind lookup result, return without array
             },
-          },
-        ])
-        .toArray();
+            {
+              // add these fields in order object
+              $addFields: {
+                name: "$plants.name",
+              },
+            },
+            {
+              // remove plant obejct property from order object
+              $project: {
+                plants: 0,
+              },
+            },
+          ])
+          .toArray();
 
+        res.send(result);
+      },
+    );
+
+    // update a order status
+    app.patch("/orders/:id", verifyToken, verifySeller, async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: { status },
+      };
+      const result = await ordersCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
