@@ -415,6 +415,14 @@ async function run() {
       res.send(result);
     });
 
+    // admin stat
+    app.get("/admin-stat", verifyToken, verifyAdmin, async (req, res) => {
+      // get total user , total plats
+      const totalUser = await userCollection.estimatedDocumentCount();
+      const totalPlants = await plantsCollection.estimatedDocumentCount();
+      res.send({ totalPlants, totalUser });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
