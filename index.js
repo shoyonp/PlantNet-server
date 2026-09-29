@@ -424,6 +424,38 @@ async function run() {
       const allOrder = await ordersCollection.find().toArray();
       // const totalOrder = allOrder.length;
       // const totalPrice = allOrder.reduce((sum, order) => sum + order.price, 0);
+
+      // generate chart data
+      const chartData = await ordersCollection
+        .aggregate([
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: { $toDate: "$_id" },
+                },
+              },
+              quantity: {
+                $sum: "$quantity",
+              },
+              price: { $sum: "$price" },
+              order: { $sum: 1 },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              date: "$_id",
+              quantity: 1,
+              order: 1,
+              price: 1,
+            },
+          },
+        ])
+        .next();
+      // console.log(chartData);
+
       // get total revenue, total order
       const ordersDetails = await ordersCollection
         .aggregate([
@@ -441,7 +473,7 @@ async function run() {
           },
         ])
         .next();
-      res.send({ totalPlants, totalUser, ...ordersDetails });
+      res.send({ totalPlants, totalUser, ...ordersDetails, chartData });
     });
 
     // Send a ping to confirm a successful connection
