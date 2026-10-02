@@ -421,13 +421,14 @@ async function run() {
       const totalUser = await userCollection.estimatedDocumentCount();
       const totalPlants = await plantsCollection.estimatedDocumentCount();
 
-      const allOrder = await ordersCollection.find().toArray();
+      // const allOrder = await ordersCollection.find().toArray();
       // const totalOrder = allOrder.length;
       // const totalPrice = allOrder.reduce((sum, order) => sum + order.price, 0);
 
       // generate chart data
       const chartData = await ordersCollection
         .aggregate([
+          
           {
             $group: {
               _id: {
@@ -452,8 +453,11 @@ async function run() {
               price: 1,
             },
           },
+          {
+            $sort: { date: -1 },
+          },
         ])
-        .next();
+        .toArray();
       // console.log(chartData);
 
       // get total revenue, total order
